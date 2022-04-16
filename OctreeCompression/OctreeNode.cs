@@ -4,29 +4,45 @@ namespace OctreeCompression;
 
 public class OctreeNode
 {
-    public OctreeBBox Bounds { get; }
+    private const object Tombstone = null!;
+    private static readonly object Empty = new object();
+
+    public OctreeBounds Bounds { get; }
     public int Depth { get; }
     private OctreeNode[]? _children;
-    private IDictionary<OctreeCorner, Vector3?> _leafs = new Dictionary<OctreeCorner, Vector3?>(); //TODO make it array
 
-    public OctreeNode(OctreeBBox bounds, int depth)
+    private object[] _leafs = new object[8] { Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty };
+
+    public OctreeNode(OctreeBounds bounds, int depth)
     {
-        // 0x1000_0001;
-        //     / \
-        // 0x1000_0000 //0x0000_0000;    
-        //     \
-        // 0x0000_0000
         Bounds = bounds;
         Depth = depth;
+    }
+
+    internal bool IsLeafEmpty(OctreeCorner corner)
+    {
+        return _leafs[corner.ToArrayIndex()] == (object)Empty;
+    }
+
+    internal bool HasAnyLeaf()
+    {
+        return _leafs.Any(l => l != (object)Empty);
+    }
+
+    internal IEnumerable<(OctreeCorner, Vector3)> IterateNonEmptyLeafs()
+    {
+        return _leafs.Where(leaf => leaf != (object)Tombstone && leaf != (object)Empty).Select((leaf, i) =>
+            (OctreeCornerExtensions.FromArrayIndex(i), (Vector3)leaf));
     }
 
 
     public void AddPoint(Vector3 vector3)
     {
         var corner = Bounds.GetCorner(vector3);
-        if (!_leafs.ContainsKey(corner))
+        var arrayIndex = corner.ToArrayIndex();
+        if (IsLeafEmpty(corner))
         {
-            _leafs.Add(corner, vector3);
+            _leafs[arrayIndex] = vector3;
             return;
         }
 
@@ -38,13 +54,13 @@ public class OctreeNode
 
         AddToChildren(vector3); // pass the vector down to children
 
-        // if it was just split, we need to move the previously leaf node down to children as well
-        if (_leafs[corner] != null)
+        // if it was just split, need to move the leaf node  down to children as well
+        if (_leafs[arrayIndex] != (object)Tombstone)
         {
-            AddToChildren(_leafs[corner]!.Value);
+            AddToChildren((Vector3)_leafs[arrayIndex]);
         }
 
-        _leafs[corner] = null;
+        _leafs[arrayIndex] = Tombstone;
     }
 
     private void AddToChildren(Vector3 vector3)
@@ -63,7 +79,7 @@ public class OctreeNode
     {
         _children = new OctreeNode[8];
         var newDepth = Depth + 1;
-        //TODO loop
+        //unwrapped loop...
         _children[0] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftFront), newDepth);
         _children[1] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftBack), newDepth);
         _children[2] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopRightFront), newDepth);
@@ -80,7 +96,7 @@ public class OctreeNode
 
         foreach (var corner in Enum.GetValues<OctreeCorner>())
         {
-            if (_leafs.TryGetValue(corner, out var vector3) && vector3.HasValue)
+            if (!IsLeafEmpty(corner) && _leafs[corner.ToArrayIndex()] != (object)Tombstone)
             {
                 FlagsHelper.Set(ref leafBits, (byte)corner);
             }
@@ -103,7 +119,7 @@ public class OctreeNode
             foreach (var corner in Enum.GetValues<OctreeCorner>())
             {
                 //TOD _leafs is length = 0 if there is nothing interesting in the whole node
-                if (_children[i]._leafs.Count != 0)
+                if (_children[i].HasAnyLeaf())
                 {
                     FlagsHelper.Set(ref childBits, (int)corner);
                 }
@@ -115,7 +131,7 @@ public class OctreeNode
 
             foreach (var child in _children)
             {
-                if (child._leafs.Count != 0)
+                if (child.HasAnyLeaf())
                 {
                     child.BinaryWrite(writer);
                 }
@@ -125,13 +141,10 @@ public class OctreeNode
 
     public void GetApproximatedPoints(List<Vector3> list)
     {
-        foreach (var leaf in _leafs)
+        foreach (var (corner, leaf) in IterateNonEmptyLeafs())
         {
-            if (leaf.Value != null)
-            {
-                var bbox = Bounds.GetOctant(leaf.Key);
-                list.Add(bbox.GetCentroid());
-            }
+            var bbox = Bounds.GetOctant(corner);
+            list.Add(bbox.GetCentroid());
         }
 
         if (_children == null) return;
@@ -151,11 +164,11 @@ public class OctreeNode
             bool isLeaf = FlagsHelper.IsSet((int)leafByte, (int)corner);
             if (isLeaf)
             {
-                _leafs[corner] = Bounds.GetOctant(corner).GetCentroid();
+                _leafs[corner.ToArrayIndex()] = Bounds.GetOctant(corner).GetCentroid();
             }
             else
             {
-                _leafs[corner] = null;
+                _leafs[corner.ToArrayIndex()] = Empty;
             }
         }
 

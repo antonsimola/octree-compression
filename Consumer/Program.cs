@@ -7,7 +7,6 @@ using OctreeCompression;
 
 var lines = File.ReadAllLines("bun_zipper.ply");
 var bunnyPointCloud = lines
-    .Take(35947)
     .Select(l => l.Split(" "))
     .Select(csv => new Vector3(float.Parse(csv[0], CultureInfo.InvariantCulture),
         float.Parse(csv[1], CultureInfo.InvariantCulture), float.Parse(csv[2], CultureInfo.InvariantCulture))).ToList();
@@ -36,7 +35,21 @@ var pointsAsString = string.Join("\n",points.Select(p =>
     $"{p.X.ToString(CultureInfo.InvariantCulture)} {p.Y.ToString(CultureInfo.InvariantCulture)} {p.Z.ToString(CultureInfo.InvariantCulture)}"))
     ;
 
-var contents = $@"ply
+
+
+File.WriteAllText("bunny_compress.ply", GetPly(points));
+File.WriteAllText("original_bunny.ply", GetPly(bunnyPointCloud));
+
+Console.WriteLine("Done");
+
+
+ string GetPly(IList<Vector3> points)
+{
+    var pointsAsString = string.Join("\n",points.Select(p =>
+            $"{p.X.ToString(CultureInfo.InvariantCulture)} {p.Y.ToString(CultureInfo.InvariantCulture)} {p.Z.ToString(CultureInfo.InvariantCulture)}"))
+        ;
+    
+return  $@"ply
 format ascii 1.0
 comment zipper output
 element vertex {points.Count}
@@ -49,6 +62,4 @@ element face 69451
 property list uchar int vertex_indices
 end_header
 {pointsAsString}";
-File.WriteAllText("bunny_compress.ply", contents);
-
-Console.WriteLine("Done");
+}

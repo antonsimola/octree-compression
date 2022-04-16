@@ -10,7 +10,9 @@ namespace OctreeCompression;
 
 public class Octree
 {
-    private readonly OctreeBBox _initialBounds;
+    private readonly OctreeBounds _initialBounds;
+    private readonly float? _minimumEdgeSize;
+    private readonly float? _maximumEdgeSize;
 
     private readonly OctreeNode _rootNode;
 
@@ -18,15 +20,19 @@ public class Octree
     /// Construct by providing known initial bounds (cannot be changed afterwards). Call AddPoint after!
     /// </summary>
     /// <param name="initialBounds"></param>
-    public Octree(OctreeBBox initialBounds)
+    /// <param name="minimumEdgeSize"></param>
+    /// <param name="maximumEdgeSize"></param>
+    public Octree(OctreeBounds initialBounds, float? minimumEdgeSize = null, float? maximumEdgeSize = null)
     {
         _initialBounds = initialBounds;
+        _minimumEdgeSize = minimumEdgeSize;
+        _maximumEdgeSize = maximumEdgeSize;
         _rootNode = new OctreeNode(initialBounds with { From = initialBounds.From, To = initialBounds.To }, 0);
     }
     
     public Octree(float x1, float y1, float z1, float x2, float y2, float z2)
     {
-        _initialBounds = new OctreeBBox(new Vector3(x1,y1, z1), new Vector3(x2,y2,z2));
+        _initialBounds = new OctreeBounds(new Vector3(x1,y1, z1), new Vector3(x2,y2,z2));
         _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
     }
 
@@ -58,7 +64,7 @@ public class Octree
         ReadPointsFromBytes(br);
     }
 
-    private OctreeBBox GetBoundsFromPoints(IList<Vector3> points)
+    private OctreeBounds GetBoundsFromPoints(IList<Vector3> points)
     {
         var minX = float.MaxValue;
         var minY = float.MaxValue;
@@ -77,7 +83,7 @@ public class Octree
             maxZ = Math.Max(maxZ, initialPoint.Z);
         }
 
-        return new OctreeBBox(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
+        return new OctreeBounds(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
     }
 
     public void AddPoint(Vector3 vector3)
@@ -128,7 +134,7 @@ public class Octree
         bw.Write(_initialBounds.To.Z);
     }
 
-    private static OctreeBBox ReadHeaders(BinaryReader br)
+    private static OctreeBounds ReadHeaders(BinaryReader br)
     {
         var x1 = br.ReadSingle();
         var y1 = br.ReadSingle();
@@ -138,7 +144,7 @@ public class Octree
         var y2 = br.ReadSingle();
         var z2 = br.ReadSingle();
 
-        return new OctreeBBox(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2));
+        return new OctreeBounds(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2));
     }
 
 
