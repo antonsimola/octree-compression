@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OctreeCompression", "OctreeCompression\OctreeCompression.csproj", "{092CCDFD-BA9E-4A8F-821C-7A97B1250E87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consumer", "Consumer\Consumer.csproj", "{110D79EE-CF11-41C7-A0D7-DDD2AE993B13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OctreeCompressionTests", "OctreeCompressionTests\OctreeCompressionTests.csproj", "{D6D7A70D-19FA-4C77-9D19-28685269F1C6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{092CCDFD-BA9E-4A8F-821C-7A97B1250E87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{092CCDFD-BA9E-4A8F-821C-7A97B1250E87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{092CCDFD-BA9E-4A8F-821C-7A97B1250E87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{092CCDFD-BA9E-4A8F-821C-7A97B1250E87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{110D79EE-CF11-41C7-A0D7-DDD2AE993B13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{110D79EE-CF11-41C7-A0D7-DDD2AE993B13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{110D79EE-CF11-41C7-A0D7-DDD2AE993B13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{110D79EE-CF11-41C7-A0D7-DDD2AE993B13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6D7A70D-19FA-4C77-9D19-28685269F1C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6D7A70D-19FA-4C77-9D19-28685269F1C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6D7A70D-19FA-4C77-9D19-28685269F1C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6D7A70D-19FA-4C77-9D19-28685269F1C6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
