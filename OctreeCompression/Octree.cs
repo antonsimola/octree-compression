@@ -19,9 +19,9 @@ public class Octree
     /// <summary>
     /// Construct by providing known initial bounds (cannot be changed afterwards). Call AddPoint after!
     /// </summary>
-    /// <param name="initialBounds"></param>
-    /// <param name="minimumEdgeSize"></param>
-    /// <param name="maximumDepth"></param>
+    /// <param name="initialBounds"> initial bounds that cover the to-be-added points entirely</param>
+    /// <param name="minimumEdgeSize">optional parameter to set the minimum sub-cube edge size</param>
+    /// <param name="maximumDepth">optional parameter to set the maximum recursion depth</param>
     public Octree(OctreeBounds initialBounds, float? minimumEdgeSize = null, int? maximumDepth = null)
     {
         _initialBounds = initialBounds;
@@ -31,7 +31,19 @@ public class Octree
             minimumEdgeSize, maximumDepth);
     }
 
-    public Octree(float x1, float y1, float z1, float x2, float y2, float z2)
+    /// <summary>
+    /// Construct by providing known initial bounds (cannot be changed afterwards). Call AddPoint after!
+    /// </summary>
+    /// <param name="x1"></param>
+    /// <param name="y1"></param>
+    /// <param name="z1"></param>
+    /// <param name="x2"></param>
+    /// <param name="y2"></param>
+    /// <param name="z2"></param>
+    /// <param name="minimumEdgeSize">optional parameter to set the minimum sub-cube edge size</param>
+    /// <param name="maximumDepth">optional parameter to set the maximum recursion depth</param>
+    
+    public Octree(float x1, float y1, float z1, float x2, float y2, float z2,  float? minimumEdgeSize = null, int? maximumDepth = null)
     {
         _initialBounds = new OctreeBounds(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2));
         _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
@@ -43,8 +55,8 @@ public class Octree
     /// AddPoint can be called later, but those points must be within initial bounds. 
     /// </summary>
     /// <param name="initialPoints"></param>
-    /// <param name="minimumEdgeSize"></param>
-    /// <param name="maximumDepth"></param>
+    /// <param name="minimumEdgeSize">optional parameter to set the minimum sub-cube edge size (minimum resolution)</param>
+    /// <param name="maximumDepth">optional parameter to set the maximum recursion depth</param>
     public Octree(IList<Vector3> initialPoints, float? minimumEdgeSize = null, int? maximumDepth = null)
     {
         _minimumEdgeSize = minimumEdgeSize;
