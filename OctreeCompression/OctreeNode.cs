@@ -4,6 +4,8 @@ namespace OctreeCompression;
 
 public class OctreeNode
 {
+    private readonly float? _minimumEdgeSize;
+    private readonly float? _maximumDepth;
     private const object Tombstone = null!;
     private static readonly object Empty = new object();
 
@@ -13,8 +15,10 @@ public class OctreeNode
 
     private object[] _leafs = new object[8] { Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty };
 
-    public OctreeNode(OctreeBounds bounds, int depth)
+    public OctreeNode(OctreeBounds bounds, int depth, float? minimumEdgeSize = null, float? maximumDepth = null)
     {
+        _minimumEdgeSize = minimumEdgeSize;
+        _maximumDepth = maximumDepth;
         Bounds = bounds;
         Depth = depth;
     }
@@ -40,7 +44,16 @@ public class OctreeNode
     {
         var corner = Bounds.GetCorner(vector3);
         var arrayIndex = corner.ToArrayIndex();
-        if (IsLeafEmpty(corner))
+
+        if (_maximumDepth.HasValue && Depth > _maximumDepth)
+        {
+            _leafs[arrayIndex] = vector3;
+            return;
+        }
+
+        if (IsLeafEmpty(corner) &&
+            (!_minimumEdgeSize.HasValue || _minimumEdgeSize.Value > Bounds.GetMaxEdgeLength())
+           )
         {
             _leafs[arrayIndex] = vector3;
             return;
@@ -55,7 +68,7 @@ public class OctreeNode
         AddToChildren(vector3); // pass the vector down to children
 
         // if it was just split, need to move the leaf node  down to children as well
-        if (_leafs[arrayIndex] != (object)Tombstone)
+        if (!IsLeafEmpty(corner) && _leafs[arrayIndex] != (object)Tombstone)
         {
             AddToChildren((Vector3)_leafs[arrayIndex]);
         }
@@ -80,17 +93,31 @@ public class OctreeNode
         _children = new OctreeNode[8];
         var newDepth = Depth + 1;
         //unwrapped loop...
-        _children[0] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftFront), newDepth);
-        _children[1] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftBack), newDepth);
-        _children[2] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopRightFront), newDepth);
-        _children[3] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopRightBack), newDepth);
-        _children[4] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomLeftFront), newDepth);
-        _children[5] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomLeftBack), newDepth);
-        _children[6] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomRightFront), newDepth);
-        _children[7] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomRightBack), newDepth);
+        _children[0] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftFront), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[1] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopLeftBack), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[2] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopRightFront), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[3] = new OctreeNode(Bounds.GetOctant(OctreeCorner.TopRightBack), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[4] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomLeftFront), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[5] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomLeftBack), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[6] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomRightFront), newDepth, _minimumEdgeSize,
+            _maximumDepth);
+        _children[7] = new OctreeNode(Bounds.GetOctant(OctreeCorner.BottomRightBack), newDepth, _minimumEdgeSize,
+            _maximumDepth);
     }
 
     public void BinaryWrite(BinaryWriter writer)
+    {
+        BinaryWriteLeafs(writer);
+        BinaryWriteChildren(writer);
+    }
+
+    private void BinaryWriteLeafs(BinaryWriter writer)
     {
         int leafBits = 0;
 
@@ -100,41 +127,32 @@ public class OctreeNode
             {
                 FlagsHelper.Set(ref leafBits, (byte)corner);
             }
-            else
-            {
-                FlagsHelper.Unset(ref leafBits, (byte)corner);
-            }
         }
 
         writer.Write((byte)leafBits);
+    }
 
-        if (_children == null)
+    private void BinaryWriteChildren(BinaryWriter writer)
+    {
+        var childBits = 0;
+        var i = 0;
+        foreach (var corner in Enum.GetValues<OctreeCorner>())
         {
-            writer.Write((byte)0);
-        }
-        else
-        {
-            var childBits = 0;
-            var i = 0;
-            foreach (var corner in Enum.GetValues<OctreeCorner>())
+            if (_children?[i].HasAnyLeaf() ?? false)
             {
-                //TOD _leafs is length = 0 if there is nothing interesting in the whole node
-                if (_children[i].HasAnyLeaf())
-                {
-                    FlagsHelper.Set(ref childBits, (int)corner);
-                }
-
-                i++;
+                FlagsHelper.Set(ref childBits, (int)corner);
             }
 
-            writer.Write(Convert.ToByte(childBits));
+            i++;
+        }
 
-            foreach (var child in _children)
+        writer.Write(Convert.ToByte(childBits));
+
+        foreach (var child in _children ?? Array.Empty<OctreeNode>())
+        {
+            if (child.HasAnyLeaf())
             {
-                if (child.HasAnyLeaf())
-                {
-                    child.BinaryWrite(writer);
-                }
+                child.BinaryWrite(writer);
             }
         }
     }
@@ -190,5 +208,11 @@ public class OctreeNode
                 i++;
             }
         }
+    }
+
+    public int GetMaximumDepth()
+    {
+        if (_children == null) return Depth;
+        return _children.Max(c => c.GetMaximumDepth());
     }
 }

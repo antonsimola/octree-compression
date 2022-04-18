@@ -4,7 +4,7 @@ namespace OctreeCompression;
 
 public record OctreeBounds
 {
-    private  Vector3? _centroid;
+    private Vector3? _centroid;
     public Vector3 From { get; set; }
 
     public Vector3 To { get; set; }
@@ -16,22 +16,23 @@ public record OctreeBounds
         _centroid = GetCentroid();
     }
 
-    public Vector3 TopLeftBackVector => new Vector3(From.X, From.Y, To.Z);
-    public Vector3 TopRightFrontVector => new Vector3(To.X, From.Y, From.Z);
+    public Vector3 TopLeftEdge => new Vector3(From.X, From.Y, To.Z) - From;
+    public Vector3 TopRightEdge => new Vector3(To.X, From.Y, From.Z) - From;
 
-    public Vector3 TopRightBackVector => new Vector3(To.X, From.Y, To.Z);
+    public Vector3 TopRightBackVector => new Vector3(To.X, From.Y, To.Z) - From;
 
-    public Vector3 BottomLeftFrontVector => new Vector3(From.X, To.Y, From.Z);
-    
+    public Vector3 BottomLeftEdge => new Vector3(From.X, To.Y, From.Z) - From;
+
     public float GetMinEdgeLength()
     {
-        return Vector3.Min(Vector3.Min(TopLeftBackVector, TopRightFrontVector), BottomLeftFrontVector).Length();
+        return Math.Abs(
+            Vector3.Min(Vector3.Min(TopLeftEdge, TopRightEdge), BottomLeftEdge).Length());
     }
-    
-    
+
+
     public float GetMaxEdgeLength()
     {
-        return Vector3.Max(Vector3.Max(TopLeftBackVector, TopRightFrontVector), BottomLeftFrontVector).Length();
+        return Vector3.Max(Vector3.Max(TopLeftEdge, TopRightEdge), BottomLeftEdge).Length();
     }
 
     public bool IsWithinBounds(Vector3 vector3Like)
@@ -45,16 +46,15 @@ public record OctreeBounds
     {
         if (_centroid == null)
         {
-            _centroid = 
+            _centroid =
                 new Vector3(
                     From.X + (To.X - From.X) / 2,
                     From.Y + (To.Y - From.Y) / 2,
                     From.Z + (To.Z - From.Z) / 2
-                );            
+                );
         }
 
         return _centroid.Value;
-
     }
 
     public OctreeBounds GetOctant(OctreeCorner corner)

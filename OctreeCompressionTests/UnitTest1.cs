@@ -55,6 +55,24 @@ public class Tests
         var octreeFromBytes = Octree.FromBytes(bytes);
 
         Assert.AreEqual(octree.GetApproximatedPoints(), octreeFromBytes.GetApproximatedPoints());
+    }
+    
+    [Test]
+    public void BunnyWithMinimumResolution()
+    {
+        var lines = File.ReadAllLines("bun_zipper.ply");
+        var bunnyPointCloud = lines
+            .Select(l => l.Split(" "))
+            .Select(csv => new Vector3(float.Parse(csv[0], CultureInfo.InvariantCulture),
+                float.Parse(csv[1], CultureInfo.InvariantCulture), float.Parse(csv[2], CultureInfo.InvariantCulture)))
+            .ToList();
+
+        var octree = new Octree(bunnyPointCloud, 0.000001f);
+        var bytes = octree.ToByteArray();
+
+        var octreeFromBytes = Octree.FromBytes(bytes);
+
+        Assert.AreEqual(octree.GetApproximatedPoints(), octreeFromBytes.GetApproximatedPoints());
 
     }
     

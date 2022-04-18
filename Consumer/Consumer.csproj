@@ -14,7 +14,11 @@
 
     <ItemGroup>
       <None Remove="bun_zipper.ply" />
-      <Content Include="bun_zipper.ply">
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="wood.ply" />
+      <Content Include="wood.ply">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

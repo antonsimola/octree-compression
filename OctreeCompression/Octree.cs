@@ -12,7 +12,7 @@ public class Octree
 {
     private readonly OctreeBounds _initialBounds;
     private readonly float? _minimumEdgeSize;
-    private readonly float? _maximumEdgeSize;
+    private readonly int? _maximumDepth;
 
     private readonly OctreeNode _rootNode;
 
@@ -21,18 +21,19 @@ public class Octree
     /// </summary>
     /// <param name="initialBounds"></param>
     /// <param name="minimumEdgeSize"></param>
-    /// <param name="maximumEdgeSize"></param>
-    public Octree(OctreeBounds initialBounds, float? minimumEdgeSize = null, float? maximumEdgeSize = null)
+    /// <param name="maximumDepth"></param>
+    public Octree(OctreeBounds initialBounds, float? minimumEdgeSize = null, int? maximumDepth = null)
     {
         _initialBounds = initialBounds;
         _minimumEdgeSize = minimumEdgeSize;
-        _maximumEdgeSize = maximumEdgeSize;
-        _rootNode = new OctreeNode(initialBounds with { From = initialBounds.From, To = initialBounds.To }, 0);
+        _maximumDepth = maximumDepth;
+        _rootNode = new OctreeNode(initialBounds with { From = initialBounds.From, To = initialBounds.To }, 0,
+            minimumEdgeSize, maximumDepth);
     }
-    
+
     public Octree(float x1, float y1, float z1, float x2, float y2, float z2)
     {
-        _initialBounds = new OctreeBounds(new Vector3(x1,y1, z1), new Vector3(x2,y2,z2));
+        _initialBounds = new OctreeBounds(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2));
         _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
     }
 
@@ -42,10 +43,15 @@ public class Octree
     /// AddPoint can be called later, but those points must be within initial bounds. 
     /// </summary>
     /// <param name="initialPoints"></param>
-    public Octree(IList<Vector3> initialPoints)
+    /// <param name="minimumEdgeSize"></param>
+    /// <param name="maximumDepth"></param>
+    public Octree(IList<Vector3> initialPoints, float? minimumEdgeSize = null, int? maximumDepth = null)
     {
+        _minimumEdgeSize = minimumEdgeSize;
+        _maximumDepth = maximumDepth;
         _initialBounds = GetBoundsFromPoints(initialPoints);
-        _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
+        _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0,
+            minimumEdgeSize, maximumDepth);
         foreach (var p in initialPoints)
         {
             AddPoint(p);
@@ -168,5 +174,10 @@ public class Octree
     internal void ReadPointsFromBytes(BinaryReader br)
     {
         _rootNode.ReadPointsFromBytes(br);
+    }
+
+    public int GetMaximumDepth()
+    {
+        return _rootNode.GetMaximumDepth();
     }
 }
