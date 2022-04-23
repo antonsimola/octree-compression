@@ -67,7 +67,7 @@ public class Tests
                 float.Parse(csv[1], CultureInfo.InvariantCulture), float.Parse(csv[2], CultureInfo.InvariantCulture)))
             .ToList();
 
-        var octree = new Octree(bunnyPointCloud, 0.000001f);
+        var octree = new Octree(bunnyPointCloud, 0.0000001f);
         var bytes = octree.ToByteArray();
 
         var octreeFromBytes = Octree.FromBytes(bytes);

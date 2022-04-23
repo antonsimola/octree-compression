@@ -27,7 +27,7 @@ public class Octree
         _initialBounds = initialBounds;
         _minimumEdgeSize = minimumEdgeSize;
         _maximumDepth = maximumDepth;
-        _rootNode = new OctreeNode(initialBounds with { From = initialBounds.From, To = initialBounds.To }, 0,
+        _rootNode = new OctreeNode(new OctreeBounds(initialBounds.From, initialBounds.To), 0,
             minimumEdgeSize, maximumDepth);
     }
 
@@ -42,11 +42,14 @@ public class Octree
     /// <param name="z2"></param>
     /// <param name="minimumEdgeSize">optional parameter to set the minimum sub-cube edge size</param>
     /// <param name="maximumDepth">optional parameter to set the maximum recursion depth</param>
-    
-    public Octree(float x1, float y1, float z1, float x2, float y2, float z2,  float? minimumEdgeSize = null, int? maximumDepth = null)
+    public Octree(float x1, float y1, float z1, float x2, float y2, float z2, float? minimumEdgeSize = null,
+        int? maximumDepth = null)
     {
+        _minimumEdgeSize = minimumEdgeSize;
+        _maximumDepth = maximumDepth;
         _initialBounds = new OctreeBounds(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2));
-        _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
+        _rootNode = new OctreeNode(new OctreeBounds(_initialBounds.From, _initialBounds.To), 0,
+            minimumEdgeSize, maximumDepth);
     }
 
     /// <summary>
@@ -62,7 +65,7 @@ public class Octree
         _minimumEdgeSize = minimumEdgeSize;
         _maximumDepth = maximumDepth;
         _initialBounds = GetBoundsFromPoints(initialPoints);
-        _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0,
+        _rootNode = new OctreeNode(new OctreeBounds(_initialBounds.From, _initialBounds.To), 0,
             minimumEdgeSize, maximumDepth);
         foreach (var p in initialPoints)
         {
@@ -78,7 +81,7 @@ public class Octree
         var ms = new MemoryStream(fromBytes);
         using var br = new BinaryReader(ms);
         _initialBounds = ReadHeaders(br);
-        _rootNode = new OctreeNode(_initialBounds with { From = _initialBounds.From, To = _initialBounds.To }, 0);
+        _rootNode = new OctreeNode(new OctreeBounds(_initialBounds.From, _initialBounds.To), 0);
         ReadPointsFromBytes(br);
     }
 
@@ -91,14 +94,14 @@ public class Octree
         var maxY = float.MinValue;
         var maxZ = float.MinValue;
 
-        foreach (var initialPoint in points)
+        foreach (var point in points)
         {
-            minX = Math.Min(minX, initialPoint.X);
-            minY = Math.Min(minY, initialPoint.Y);
-            minZ = Math.Min(minZ, initialPoint.Z);
-            maxX = Math.Max(maxX, initialPoint.X);
-            maxY = Math.Max(maxY, initialPoint.Y);
-            maxZ = Math.Max(maxZ, initialPoint.Z);
+            minX = Math.Min(minX, point.X);
+            minY = Math.Min(minY, point.Y);
+            minZ = Math.Min(minZ, point.Z);
+            maxX = Math.Max(maxX, point.X);
+            maxY = Math.Max(maxY, point.Y);
+            maxZ = Math.Max(maxZ, point.Z);
         }
 
         return new OctreeBounds(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
@@ -108,13 +111,22 @@ public class Octree
     {
         if (!_initialBounds.IsWithinBounds(vector3))
         {
-            throw new Exception("cannot expand initial bbox yet...");
+            throw new Exception(
+                $"vector {vector3} is not within initial bounds {_initialBounds}, and expanding bounds is not supported.");
         }
 
         _rootNode.AddPoint(vector3);
     }
 
     public void AddPoints(params Vector3[] vector3s)
+    {
+        foreach (var vector3 in vector3s)
+        {
+            AddPoint(vector3);
+        }
+    }
+    
+    public void AddPoints(IEnumerable<Vector3> vector3s)
     {
         foreach (var vector3 in vector3s)
         {
@@ -139,6 +151,15 @@ public class Octree
         _rootNode.BinaryWrite(bw);
 
         return ms;
+    }
+
+    public void ToStream(Stream stream)
+    {
+        var bw = new BinaryWriter(stream);
+
+        WriteHeaders(bw);
+
+        _rootNode.BinaryWrite(bw);
     }
 
     private void WriteHeaders(BinaryWriter bw)
