@@ -121,9 +121,10 @@ public class OctreeNode
     {
         int leafBits = 0;
 
-        foreach (var corner in Enum.GetValues<OctreeCorner>())
+        for (var i = 0; i < 8; i++)
         {
-            if (!IsLeafEmpty(corner) && _leafs[corner.ToArrayIndex()] != (object)Tombstone)
+            var corner = OctreeCornerExtensions.FromArrayIndex(i);
+            if (!IsLeafEmpty(corner) && _leafs[i] != (object)Tombstone)
             {
                 FlagsHelper.Set(ref leafBits, (byte)corner);
             }
@@ -135,15 +136,14 @@ public class OctreeNode
     private void BinaryWriteChildren(BinaryWriter writer)
     {
         var childBits = 0;
-        var i = 0;
-        foreach (var corner in Enum.GetValues<OctreeCorner>())
+        
+        for (var i =0; i< 8; i++)
         {
             if (_children?[i].HasAnyLeaf() ?? false)
             {
+                var corner = OctreeCornerExtensions.FromArrayIndex(i);
                 FlagsHelper.Set(ref childBits, (int)corner);
             }
-
-            i++;
         }
 
         writer.Write(Convert.ToByte(childBits));
@@ -177,8 +177,9 @@ public class OctreeNode
     {
         var leafByte = br.ReadByte();
 
-        foreach (var corner in Enum.GetValues<OctreeCorner>())
+        for (var i = 0; i < 8; i++)
         {
+            var corner = OctreeCornerExtensions.FromArrayIndex(i);
             bool isLeaf = FlagsHelper.IsSet((int)leafByte, (int)corner);
             if (isLeaf)
             {
@@ -195,17 +196,15 @@ public class OctreeNode
         if (childByte > 0)
         {
             Divide();
-            var i = 0;
 
-            foreach (var corner in Enum.GetValues<OctreeCorner>())
+            for (var i = 0; i < 8; i++)
             {
+                var corner = OctreeCornerExtensions.FromArrayIndex(i);
                 bool isChild = FlagsHelper.IsSet(childByte, (int)corner);
                 if (isChild)
                 {
                     _children[i].ReadPointsFromBytes(br);
                 }
-
-                i++;
             }
         }
     }
