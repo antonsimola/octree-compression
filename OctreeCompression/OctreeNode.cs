@@ -33,13 +33,6 @@ public class OctreeNode
         return _leafs.Any(l => l != (object)Empty);
     }
 
-    internal IEnumerable<(OctreeCorner, Vector3)> IterateNonEmptyLeafs()
-    {
-        return _leafs.Where(leaf => leaf != (object)Tombstone && leaf != (object)Empty).Select((leaf, i) =>
-            (OctreeCornerExtensions.FromArrayIndex(i), (Vector3)leaf));
-    }
-
-
     public void AddPoint(Vector3 vector3)
     {
         var corner = Bounds.GetCorner(vector3);
@@ -113,33 +106,16 @@ public class OctreeNode
 
     public void BinaryWrite(BinaryWriter writer)
     {
-        BinaryWriteLeafs(writer);
         BinaryWriteChildren(writer);
     }
-
-    private void BinaryWriteLeafs(BinaryWriter writer)
-    {
-        int leafBits = 0;
-
-        for (var i = 0; i < 8; i++)
-        {
-            var corner = OctreeCornerExtensions.FromArrayIndex(i);
-            if (!IsLeafEmpty(corner) && _leafs[i] != (object)Tombstone)
-            {
-                FlagsHelper.Set(ref leafBits, (byte)corner);
-            }
-        }
-
-        writer.Write((byte)leafBits);
-    }
-
     private void BinaryWriteChildren(BinaryWriter writer)
     {
         var childBits = 0;
-        
-        for (var i =0; i< 8; i++)
+
+        for (var i = 0; i < 8; i++)
         {
-            if (_children?[i].HasAnyLeaf() ?? false)
+            if ((_leafs[i] != (object) Tombstone && _leafs[i] != Empty) ||
+                (_children?[i].HasAnyLeaf() ?? false))   
             {
                 var corner = OctreeCornerExtensions.FromArrayIndex(i);
                 FlagsHelper.Set(ref childBits, (int)corner);
@@ -148,21 +124,35 @@ public class OctreeNode
 
         writer.Write(Convert.ToByte(childBits));
 
-        foreach (var child in _children ?? Array.Empty<OctreeNode>())
+       
+        for (var i = 0; i < 8; i++)
         {
-            if (child.HasAnyLeaf())
+            var isLeaf = _leafs[i] != (object)Tombstone && _leafs[i] != Empty;
+
+            if (isLeaf)
             {
-                child.BinaryWrite(writer);
+                writer.Write((byte) 0);
+            }
+
+            else if (_children?[i]?.HasAnyLeaf() ?? false)
+            {
+                _children[i].BinaryWrite(writer);
             }
         }
+        
     }
 
     public void GetApproximatedPoints(List<Vector3> list)
     {
-        foreach (var (corner, leaf) in IterateNonEmptyLeafs())
+        var i = 0;
+        foreach (var leaf in _leafs)
         {
-            var bbox = Bounds.GetOctant(corner);
-            list.Add(bbox.GetCentroid());
+            if (leaf != Tombstone && leaf != Empty)
+            {
+                var bbox = Bounds.GetOctant(OctreeCornerExtensions.FromArrayIndex(i));
+                list.Add(bbox.GetCentroid());    
+            }
+            i++;
         }
 
         if (_children == null) return;
@@ -172,41 +162,38 @@ public class OctreeNode
             child.GetApproximatedPoints(list);
         }
     }
-
-    public void ReadPointsFromBytes(BinaryReader br)
+    
+    
+    public bool ReadPointsFromBytes(BinaryReader br)
     {
-        var leafByte = br.ReadByte();
+        var childByte = br.ReadByte();
+        if (childByte == 0)
+        {
+            return true;
+        }
+
+        Divide();
 
         for (var i = 0; i < 8; i++)
         {
             var corner = OctreeCornerExtensions.FromArrayIndex(i);
-            bool isLeaf = FlagsHelper.IsSet((int)leafByte, (int)corner);
-            if (isLeaf)
+            bool isChild = FlagsHelper.IsSet(childByte, (int)corner);
+            if (isChild)
             {
-                _leafs[corner.ToArrayIndex()] = Bounds.GetOctant(corner).GetCentroid();
-            }
-            else
-            {
-                _leafs[corner.ToArrayIndex()] = Empty;
-            }
-        }
-
-        var childByte = br.ReadByte();
-
-        if (childByte > 0)
-        {
-            Divide();
-
-            for (var i = 0; i < 8; i++)
-            {
-                var corner = OctreeCornerExtensions.FromArrayIndex(i);
-                bool isChild = FlagsHelper.IsSet(childByte, (int)corner);
-                if (isChild)
+                var wasLeaf =  _children[i].ReadPointsFromBytes(br);
+                if (wasLeaf)
                 {
-                    _children[i].ReadPointsFromBytes(br);
+                    _leafs[i] = Bounds.GetOctant(corner).GetCentroid();
+                }
+                else
+                {
+                    _leafs[i] = Empty;
                 }
             }
         }
+
+
+        return false;
     }
 
     public int GetMaximumDepth()

@@ -2,7 +2,7 @@
 
 namespace OctreeCompression;
 
-public record OctreeBounds
+public record  OctreeBounds
 {
     private Vector3? _centroid;
     public Vector3 From { get; }
@@ -15,10 +15,10 @@ public record OctreeBounds
     {
         From = Vector3.Min(from, to);
         To = Vector3.Max(from, to);
-        _centroid = GetCentroid();
         TopLeftEdge = new Vector3(From.X, From.Y, To.Z) - From;
         TopRightEdge = new Vector3(To.X, From.Y, From.Z) - From;
         BottomLeftEdge = new Vector3(From.X, To.Y, From.Z) - From;
+        _centroid = GetCentroid();
     }
 
     public Vector3 TopLeftEdge { get; }
@@ -35,7 +35,7 @@ public record OctreeBounds
 
     public float GetMaxEdgeLength()
     {
-        return Vector3.Max(Vector3.Max(TopLeftEdge, TopRightEdge), BottomLeftEdge).Length();
+        return Math.Abs(Vector3.Max(Vector3.Max(TopLeftEdge, TopRightEdge), BottomLeftEdge).Length());
     }
 
     public bool IsWithinBounds(Vector3 vector3Like)

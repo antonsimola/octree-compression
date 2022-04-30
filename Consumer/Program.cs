@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Numerics;
 using OctreeCompression;
 
-var filePrefix = "wood";
+var filePrefix = "wood_newformat";
 
 var lines = File.ReadAllLines($"{filePrefix}.ply");
 var bunnyPointCloud = lines

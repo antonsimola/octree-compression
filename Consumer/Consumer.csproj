@@ -17,6 +17,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Content Include="wood_newformat.ply">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
       <None Remove="wood.ply" />
       <Content Include="wood.ply">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
